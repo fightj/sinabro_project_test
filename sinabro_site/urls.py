@@ -23,4 +23,5 @@ urlpatterns = [
     path('member/', include('member.urls')),
     path('board/', include('board.urls')),
     path('', Home),
+    path("", include('chat.urls')),
 ]

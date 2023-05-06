@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block base %}
+    <form method='post' action='{% url 'room-join' %}'>
+        {% csrf_token %}
+        <input name='room_slug' id='room_slug' required='true' placeholder='Room Code'>
+        <input type='submit' id="submit">
+    </form>
+{% endblock %}
