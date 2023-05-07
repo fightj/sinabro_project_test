@@ -2,22 +2,25 @@ import json
 
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-
 from chat.models import Room, Message
+from channels.auth import get_user
+from channels.db import database_sync_to_async
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["room_slug"]
         self.room_group_name = "chat_%s" % self.room_name
-        self.user = self.scope["user"]
+        #self.user = self.scope["user"]
+        self.user = await get_user(self.scope)
+
 
         await self.channel_layer.group_add(
             self.room_group_name, self.channel_name
         )
 
-        await self.add_user(self.room_name, self.user)
-
+        #await self.add_user(self.room_name, self.user)
+        await database_sync_to_async(self.add_user)(self.room_name, self.user)
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -31,12 +34,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = text_data_json["message"]
         user = self.user
         username = user.username
+
         room = self.room_name
 
         #await self.save_message(room, user, message)
 
         await self.channel_layer.group_send(
-            self.room_group_name,
+            self.room_group_name, 
             {
                 "type": "chat_message",
                 "message": message,
@@ -49,7 +53,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event["message"]
         #room = event["room"]
         username = event["username"]
-
 
         message_html = f"<div hx-swap-oob='beforeend:#messages'><p><b>{username}</b>: {message}</p></div>"
         await self.send(
@@ -80,3 +83,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if user in room.users.all():
             room.users.remove(user)
             room.save()
+
